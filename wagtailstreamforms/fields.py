@@ -5,6 +5,7 @@ from django.utils.text import capfirst
 from wagtail.core import blocks
 from wagtailstreamforms import hooks
 from wagtailstreamforms.utils.apps import get_app_submodules
+from wagtailstreamforms.utils.general import get_slug_from_string
 
 _fields = {}
 _searched_for_fields = False
@@ -65,6 +66,51 @@ class BaseField:
     widget = None
     icon = "placeholder"
     label = None
+    # used as a fallback when no name or label is defined for a block instance
+    formfield_name = None
+
+    @classmethod
+    def get_formfield_name(cls, block_value):
+        """
+        Return a value to use as the 'name' for the Django form field.
+        """
+        return block_value.get("name") or get_slug_from_string(cls.get_formfield_label(block_value))
+
+    @classmethod
+    def get_formfield_label(cls, block_value):
+        """
+        Return a value to use as the 'label' for the Django form field.
+        """
+        try:
+            return block_value["label"]
+        except KeyError:
+            raise AttributeError(
+                f"No label value can be determined for an instance of {cls.__name__}. "
+                "Add a 'label' CharBlock() in your field's get_form_block() method to "
+                "allow this to be specified by form editors. Or, override "
+                "get_formfield_label() to return a different value."
+            )
+
+    @classmethod
+    def get_formfield_help_text(cls, block_value):
+        """
+        Return a value to use as the 'help_text' for the Django form field.
+        """
+        return block_value.get("help_text")
+
+    @classmethod
+    def get_formfield_intial(cls, block_value):
+        """
+        Return a 'initial' value to use for the Django form field.
+        """
+        return block_value.get("default_value")
+
+    @classmethod
+    def get_formfield_required(cls, block_value):
+        """
+        Return a boolean indicating whether the Django form field should be required.
+        """
+        return block_value.get("required", True)
 
     def get_formfield(self, block_value):
         """
@@ -94,10 +140,10 @@ class BaseField:
         """
 
         return {
-            "label": block_value.get("label"),
-            "help_text": block_value.get("help_text"),
-            "required": block_value.get("required"),
-            "initial": block_value.get("default_value"),
+            "label": self.get_formfield_label(block_value),
+            "help_text": self.get_formfield_help_text(block_value),
+            "required": self.get_formfield_required(block_value),
+            "initial": self.get_formfield_intial(block_value),
         }
 
     def get_form_block(self):
