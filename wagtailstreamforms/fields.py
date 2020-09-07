@@ -3,6 +3,7 @@ from django.core import exceptions
 from django.db import models
 from django.utils.text import capfirst
 from wagtail.core import blocks
+
 from wagtailstreamforms import hooks
 from wagtailstreamforms.utils.apps import get_app_submodules
 from wagtailstreamforms.utils.general import get_slug_from_string
@@ -97,7 +98,7 @@ class BaseField:
         return block_value.get("help_text")
 
     @classmethod
-    def get_formfield_intial(cls, block_value):
+    def get_formfield_initial(cls, block_value):
         """
         Return a 'initial' value to use for the Django form field.
         """
@@ -141,7 +142,7 @@ class BaseField:
             "label": self.get_formfield_label(block_value),
             "help_text": self.get_formfield_help_text(block_value),
             "required": self.get_formfield_required(block_value),
-            "initial": self.get_formfield_intial(block_value),
+            "initial": self.get_formfield_initial(block_value),
         }
 
     def get_form_block(self):
@@ -191,7 +192,9 @@ class HookSelectField(models.Field):
         defaults.update(kwargs)
         return super().formfield(**defaults)
 
-    def from_db_value(self, value, expression, connection, context=None, *args, **kwargs):
+    def from_db_value(
+        self, value, expression, connection, context=None, *args, **kwargs
+    ):
         if value is None or value == "":
             return []
         return value.split(",")
